@@ -1,10 +1,12 @@
 public class MultiColSumDemo extends Configured implements Tool {
 
 public static void main(String[] args) throws Exception {
-
     ToolRunner.run(new Configuration(), new MultiColSumDemo(), args);
 }
 
+    
+    
+    
 @Override
 public int run(String[] arg0) throws Exception {
 
@@ -32,6 +34,9 @@ public int run(String[] arg0) throws Exception {
     return 1;
 }
 
+    
+    
+    
 class MultiColMapper extends Mapper<Text, Text, Text, Text> {
 
     @Override
@@ -42,6 +47,9 @@ class MultiColMapper extends Mapper<Text, Text, Text, Text> {
 
 }
 
+    
+    
+    
 class MultiColReduce extends Reducer<Text, Text, Text, Text> {
 
     @Override
