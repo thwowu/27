@@ -76,3 +76,4 @@ class MultiColReduce extends Reducer<Text, Text, Text, Text> {
 
     }
 }
+}
