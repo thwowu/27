@@ -44,3 +44,12 @@ public class CSVReader {
     }
 
 }
+
+
+http://stackoverflow.com/questions/22847805/passing-file-path-as-an-argument-in-java
+
+public static void main(String[] args) {
+String path = args[0];
+// ... 
+File CP_file = new File(path);
+// ... 
