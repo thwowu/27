@@ -16,21 +16,20 @@ public class Question28 {
 		FSDataInputStream inStream = fs.open(filename);
 		
 		try{
+		InputStreamReader isr = new InputStreamReader(inStream);
+		BufferedReader br = new BufferedReader(isr);
 			
-			InputStreamReader isr = new InputStreamReader(inStream);
-			BufferedReader br = new BufferedReader(isr);
-			
-      int line_counter = 0;
-			String line = br.readLine();
-			while (line !=null){
-        if (line_counter > 21){  
-        String[] country = line.split(;);
-        System.out.println("Tree: " + country[11] + ", year=" + country[5] + ", height=" + country[6]);
-        line_counter += 1
-        }
-        else{
-        line_counter += 1
-        }
+      		int line_counter = 0;
+		String line = br.readLine();
+		while (line !=null){
+			if (line_counter > 21){  
+				processLine(line);
+				
+			line_counter += 1
+			}
+			else{
+			line_counter += 1
+			}
 				// go to the next line
 				line = br.readLine();
 			}
@@ -44,5 +43,14 @@ public class Question28 {
 		
 		
 	}
+		
+	public static void processLine(String line) {
+
+	String name = line.substring(13, 42);
+	String FIPS = line.substring(43, 44);
+        String altitude = line.substring(74, 80);
+
+        System.out.println("Name [" + name + "]\t Country [" + FIPS + "]\t Elevation [" + altitude +"]");
+    }
 
 }
