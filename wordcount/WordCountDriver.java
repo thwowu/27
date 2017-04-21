@@ -4,6 +4,7 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
+// http://snap.stanford.edu/class/cs246-data-2014/WordCount.java
 
 public class WordCountDriver {
     public static void main(String args[]) throws Exception
