@@ -19,16 +19,15 @@ public class Question28 {
 		InputStreamReader isr = new InputStreamReader(inStream);
 		BufferedReader br = new BufferedReader(isr);
 			
-      		int line_counter = 0;
+      	int line_counter = 0;
 		String line = br.readLine();
 		while (line !=null){
 			if (line_counter > 22){  
 				processLine(line);
-				
-			line_counter += 1
+				line_counter += 1;
 			}
-			else{
-			line_counter += 1
+			else {
+			line_counter += 1;
 			}
 				// go to the next line
 				line = br.readLine();
@@ -40,8 +39,6 @@ public class Question28 {
 			fs.close();
 		}
 
-		
-		
 	}
 		
 	public static void processLine(String line) {
@@ -49,9 +46,8 @@ public class Question28 {
 	String USAF = line.substring(0, 6);	
 	String name = line.substring(13, 42);
 	String FIPS = line.substring(43, 45);
-        String altitude = line.substring(74, 81);
-
-        System.out.println("Name [" + name + "]\t Country [" + FIPS + "]\t Elevation [" + altitude +"]");
+    String altitude = line.substring(74, 81);
+    System.out.println("Name [" + name + "]\t USAF [" + USAF  + 
+    		           "]\t Country [" + FIPS + "]\t Elevation [" + altitude +"]");
     }
-
 }
