@@ -103,15 +103,10 @@ public class Question41 {
         
         public void map(LongWritable key, Text value, Context context)
                 throws IOException, InterruptedException {
-                
-            InputSplit inputSplit = context.getInputSplit();
-            
-            String str =  ((FileSplit) inputSplit).getPath().toString();
-            
-            
+                          
             // get the file name
             String File_name = ((FileSplit) context.getInputSplit()).getPath().getName();
-            
+	    
             StringTokenizer itr = new StringTokenizer(value.toString());
             
             String word;
@@ -119,12 +114,13 @@ public class Question41 {
                 word = File_name;
                 word += " ";
                 word += itr.nextToken(); 
-                // 将文件名加单词作为key es: test1 hello 1
-                
                 all++;
                 
                 context.write(new Text(word), one);
-		
+                // key: document name + word 
+		// value: 1 
+		// example: doc1 hello 1
+                //          doc1 newnewnew 1
             }
         }
 
