@@ -1,7 +1,7 @@
 package ecp.Lab1.WordCount;
 
+// http://www.cnblogs.com/hehaiyang/p/4489248.html
 // /home/hadoop/input /home/hadoop/temp /home/hadoop/output
-
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -28,17 +28,18 @@ public class Question41 {
 	public static void main(String[] args) throws IOException {
 		
 	// part1----------------------------------------------------
+	// 	
+		
         Configuration conf1 = new Configuration();
 
         FileSystem hdfs = FileSystem.get(conf1);
         FileStatus p[] = hdfs.listStatus(new Path(args[0]));
-        // 获取输入文件夹内文件的个数，然后来设置NumReduceTasks
-        
+        // counting the documents. Later used in setting the numbers of reducers 
         
         Job job1 = Job.getInstance(conf1, "My_tdif_part1");
         job1.setJarByClass(TFIDF.class);
         job1.setMapperClass(Mapper_Part1.class);
-        // job1.setCombinerClass(Combiner_Part1.class); // combiner在本地执行，效率要高点。
+        // job1.setCombinerClass(Combiner_Part1.class); 
         job1.setReducerClass(Reduce_Part1.class);
         job1.setMapOutputKeyClass(Text.class);
         job1.setMapOutputValueClass(Text.class);
@@ -54,7 +55,6 @@ public class Question41 {
 	 * 
 	 * Our partitioner will make sure that we partition 
 	 * by the term itself only and not by the document id contained in the key.
-	 *
 	 * By this we achieve a fairly good distribution and the possibility to 
 	 * count the occurrence of a term at the reducer.
 	 * 
@@ -84,6 +84,9 @@ public class Question41 {
         FileOutputFormat.setOutputPath(job2, new Path(args[2]));
 
         job2.waitForCompletion(true);
+	
+     // hdfs.delete(new Path(args[1]), true);
+		
     }
 	
 // part1------------------------------------------------------------------------
@@ -92,10 +95,10 @@ public class Question41 {
             
         
         int all = 0; 
-        // counting the numbers
+        // counting the numbers of individual words in one documents
         
         static Text one = new Text("1");
-        String word;
+        
         
         
         public void map(LongWritable key, Text value, Context context)
@@ -110,7 +113,9 @@ public class Question41 {
             String File_name = ((FileSplit) context.getInputSplit()).getPath().getName();
             
             StringTokenizer itr = new StringTokenizer(value.toString());
-            while (itr.hasMoreTokens()) {
+            
+            String word;
+	    while (itr.hasMoreTokens()) {
                 word = File_name;
                 word += " ";
                 word += itr.nextToken(); 
@@ -119,6 +124,7 @@ public class Question41 {
                 all++;
                 
                 context.write(new Text(word), one);
+		
             }
         }
 
