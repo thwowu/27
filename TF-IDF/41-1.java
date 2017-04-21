@@ -46,7 +46,20 @@ public class Question41 {
         job1.setOutputValueClass(Text.class);
         job1.setNumReduceTasks(p.length);
         
-        // job1.setPartitionerClass(MyPartitoner.class); // 使用自定义MyPartitoner
+        // job1.setPartitionerClass(MyPartitoner.class); 
+        /* control the way Hadoop partitions and sorts at reduce level 
+	 * it offers the possibility of using a custom partitioning and group comparator. 
+	 * We are going to use this in our last step to calculate tf-idf.
+	 * 
+	 * 
+	 * Our partitioner will make sure that we partition 
+	 * by the term itself only and not by the document id contained in the key.
+	 *
+	 * By this we achieve a fairly good distribution and the possibility to 
+	 * count the occurrence of a term at the reducer.
+	 * 
+	 * http://henning.kropponline.de/2014/06/08/map-reduce-tf-idf/
+	 */
 
         FileInputFormat.addInputPath(job1, new Path(args[0]));
         FileOutputFormat.setOutputPath(job1, new Path(args[1]));
