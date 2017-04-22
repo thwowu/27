@@ -39,7 +39,7 @@ public class Question41 {
         Job job1 = Job.getInstance(conf1, "My_tdif_part1");
         job1.setJarByClass(TFIDF.class);
         job1.setMapperClass(Mapper_Part1.class);
-        // job1.setCombinerClass(Combiner_Part1.class); 
+        job1.setCombinerClass(Combiner_Part1.class); 
         job1.setReducerClass(Reduce_Part1.class);
         job1.setMapOutputKeyClass(Text.class);
         job1.setMapOutputValueClass(Text.class);
@@ -155,25 +155,44 @@ public class Question41 {
             // 主要这里值使用的 "!"是特别构造的。 因为!的ascii比所有的字母都小。
 	    // doc1 ! 499
         }
+	    
+	/* map will flush the following output:
+	 * key             value
+	 * ---------------------
+	 * doc1 !          499
+	 * doc1 hello      1
+	 * doc1 newnewnew  1
+	 * doc1 ZEXX       8
+	 * 
+	 */
     }
 
+    // setup (no use) -> mapper_1 -> cleanup -> combiner_1 (current) -> reducer_1 
+    // objective: 
     public static class Combiner_Part1 extends Reducer<Text, Text, Text, Text> {
         float all = 0;
         public void reduce(Text key, Iterable<Text> values, Context context)
                 throws IOException, InterruptedException {
-                
+		
+	    // mission one: get the number of total individiual words in a document----------------------
+		
             int index = key.toString().indexOf(" ");
-            // 因为!的ascii最小，所以在map阶段的排序后，!会出现在第一个
-            
+	    // get the position of the separator, 
+	    // later to use value to extract the total individual words amount, marked as "!"
+		
             if (key.toString().substring(index + 1, index + 2).equals("!")) {
                 for (Text val : values) {
-                    // 获取总的单词数。
+                    // 
                     all = Integer.parseInt(val.toString());
                 }
-                // 这个key-value被抛弃
+                // do not output this pair of key-value, avoid using it in later stream
+		// only extract the number for calculation in combiner
                 return;
             }
-            float sum = 0; // 统计某个单词出现的次数
+	    
+	    // mission two: calculate the frequency of a single word then parse them 
+		
+            float sum = 0; 
             for (Text val : values) {
                 sum += Integer.parseInt(val.toString());
             }
