@@ -163,13 +163,13 @@ public class Question41 {
 	 * doc1 !          499
 	 * doc1 hello      1
 	 * doc1 newnewnew  1
-	 * doc1 ZEXX       8
+	 * doc1 ZEXX       1
 	 * 
 	 */
     }
 
-    // setup (no use) -> mapper_1 -> cleanup -> combiner_1 (current) -> reducer_1 
-    // objective: 
+   // setup (no use) -> mapper_1 -> cleanup -> combiner_1 (current) -> Partitioner -> reducer_1  
+    // objective: complete term frequncy
     public static class Combiner_Part1 extends Reducer<Text, Text, Text, Text> {
         
 	float all = 0;
@@ -194,7 +194,7 @@ public class Question41 {
             }
 	    
 	    // mission 2: calculate the frequency of "a single word" ----------------------------------
-	    //                                               (globally)
+	    //                                               (locally)
 	    // recycle the codes from Stanford word count
 	    // the mulitiplication needs to use integer instead of String, use "Integer.parseInt()"
 	
@@ -204,7 +204,7 @@ public class Question41 {
             }
 		
 		
-	    // mission 3: Term Frequncy of a single word, globally ---------------------------------------------- 
+	    // mission 3: Term Frequncy of a single word, in a document ---------------------------------------------- 
             float tmp = sum / all;
             String value = "";
             value += tmp; 
@@ -214,25 +214,28 @@ public class Question41 {
 		
             String p[] = key.toString().split(" ");
             String key_to = "";
-            key_to += p[1];
+            key_to += p[1]; // word name : hello
             key_to += " ";
-            key_to += p[0];
+            key_to += p[0]; // file name : doc1
             context.write(new Text(key_to), new Text(value));
         }
+	 /* combiner will flush the following output:
+	 * key                value (Term Frequency)
+	 * ------------------------------------
+	 * hello doc1         0.5
+	 * hello doc2         0.011
+	 * hello doc3         0.002
+	 * newnewnew doc1     0.2
+	 * newnewnew doc2     0.211
+	 * ZEXX doc3          0.4
+	 * 
+	 */
     }
 
-    public static class Reduce_Part1 extends Reducer<Text, Text, Text, Text> {
-        public void reduce(Text key, Iterable<Text> values, Context context)
-                throws IOException, InterruptedException {
-            for (Text val : values) {
-                context.write(key, val);
-            }
-        }
-    }
-
+   // setup (no use) -> mapper_1 -> cleanup -> combiner_1 -> Partitioner (current) -> reducer_1  ?????
     public static class MyPartitoner extends Partitioner<Text, Text> {
-        // 实现自定义的Partitioner
-        public int getPartition(Text key, Text value, int numPartitions) {
+
+	    public int getPartition(Text key, Text value, int numPartitions) {
             // 我们将一个文件中计算的结果作为一个文件保存
             // es： test1 test2
             String ip1 = key.toString();
@@ -242,18 +245,40 @@ public class Question41 {
         }
     }
 
-    // part2-----------------------------------------------------
+    // setup (no use) -> mapper_1 -> cleanup -> combiner_1 -> Partitioner -> reducer_1 (current)
+    // objective: bypass
+    public static class Reduce_Part1 extends Reducer<Text, Text, Text, Text> {
+        public void reduce(Text key, Iterable<Text> values, Context context)
+                throws IOException, InterruptedException {
+            for (Text val : values) {
+                context.write(key, val);
+            }
+        }
+    }
+
+
+    // part2----------------------------------------------------- IDF
+    // objective: acquire IDF & TF-IDF
+	
+    // from TF to IDF
     public static class Mapper_Part2 extends
             Mapper<LongWritable, Text, Text, Text> {
         public void map(LongWritable key, Text value, Context context)
                 throws IOException, InterruptedException {
-            String val = value.toString().replaceAll("    ", " "); // 将vlaue中的TAB分割符换成空格
-                                                                // es: Bank
-                                                                // test1
-                                                                // 0.11764706 ->
-                                                                // Bank test1
-                                                                // 0.11764706
-            int index = val.indexOf(" ");
+	
+	// LongWritable type, so the text type data pour into value 
+	
+            String val = value.toString().replaceAll("    ", " "); 
+            // correct tab by space
+ 
+	    // mission 1: extract the data for output use
+	    /* 
+	     * new key : word 
+	     * new value: document file name + term frquency value
+	    */ 
+	    
+	    
+	    int index = val.indexOf(" ");
             String s1 = val.substring(0, index); // 获取单词 作为key es: hello
             String s2 = val.substring(index + 1); // 其余部分 作为value es: test1
                                                     // 0.11764706
@@ -261,32 +286,80 @@ public class Question41 {
             s2 += "1"; // 统计单词在所有文章中出现的次数, “1” 表示出现一次。 es: test1 0.11764706 1
             context.write(new Text(s1), new Text(s2));
         }
+	 /* map will flush the following output:
+	 * key (word)         value (file name + TF + Count)
+	 * ------------------------------------
+	 * hello              doc1 0.5 1
+	 * hello              doc2 0.011 1
+	 * hello              doc3 0.002 1
+	 * newnewnew          doc1 0.2 1
+	 * newnewnew          doc2 0.211 1
+	 * ZEXX               doc3 0.4 1
+	 * 
+	 */    
     }
 
+    
     public static class Reduce_Part2 extends Reducer<Text, Text, Text, Text> {
         int file_count;
 
         public void reduce(Text key, Iterable<Text> values, Context context)
                 throws IOException, InterruptedException {
-            // 同一个单词会被分成同一个group
-            file_count = context.getNumReduceTasks(); // 获取总文件数
+
+	// Mission 1: IDF ------------------------------------------------------------
+
+            // Get the # of documents in total (set by the configuration)
+            file_count = context.getNumReduceTasks();
+
             float sum = 0;
             List<String> vals = new ArrayList<String>();
-            for (Text str : values) {
+
+            for (Text str : values) {     // str <- values <- "doc1 0.5 1"
                 int index = str.toString().lastIndexOf(" ");
-                sum += Integer.parseInt(str.toString().substring(index + 1)); // 统计此单词在所有文件中出现的次数
-                vals.add(str.toString().substring(0, index)); // 保存
+		// use function "lastIndexOf" because there are two spaces
+		// but we only want to take the last integer "1"
+		
+                sum += Integer.parseInt(str.toString().substring(index + 1)); 
+		// keep adding up if appearing in several documents
+		    
+                vals.add(str.toString().substring(0, index)); 
+		// document file name: where does this word appears? & its TF value
+		// ex: [doc1 0.5, doc2 0.2122, doc5 0.11, doc6 0.209]
+	        
             }
-            double tmp = Math.log10( file_count*1.0 /(sum*1.0)); // 单词在所有文件中出现的次数除以总文件数 = IDF
-            for (int j = 0; j < vals.size(); j++) {
+		
+            double tmp = Math.log10( file_count * 1.0 /(sum * 1.0)); 
+	    // IDF: term i appears in ni of the N documents in the collection
+            
+	    
+	// Mission 2: TF-IDF ------------------------------------------------------------
+		
+	    for (int j = 0; j < vals.size(); j++) {
+		
+		// read out the TF value stored in the array list
                 String val = vals.get(j);
                 String end = val.substring(val.lastIndexOf(" "));
-                float f_end = Float.parseFloat(end); // 读取TF
+                float f_end = Float.parseFloat(end);
+		 
+		// calculate tf-idf
                 val += " ";
-                val += f_end * tmp; //  tf-idf值
+                val += f_end * tmp; //  tf-idf
+		    
                 context.write(key, new Text(val));
             }
         }
+	 /* 
+	 * reducer2 will flush the following output:
+	 * key (word)         value (file name + TF + IDF)
+	 * ------------------------------------
+	 * hello              doc1 0.5 1.21
+	 * hello              doc2 0.011 8.2
+	 * hello              doc3 0.002 3.1
+	 * newnewnew          doc1 0.2 1 1.5
+	 * newnewnew          doc2 0.211 3.0 
+	 * ZEXX               doc3 0.4 1.44
+	 * 
+	 */    
     }
 	
 }
