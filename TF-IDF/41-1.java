@@ -141,6 +141,7 @@ public class Question41 {
 	 * 
 	 * setup -> map -> cleanup
 	 * setup -> reduce -> cleanup
+	 *
 	 * http://stackoverflow.com/questions/25432598/what-is-the-mapper-of-reducer-setup-used-for
 	*/ 
 	    
@@ -170,11 +171,13 @@ public class Question41 {
     // setup (no use) -> mapper_1 -> cleanup -> combiner_1 (current) -> reducer_1 
     // objective: 
     public static class Combiner_Part1 extends Reducer<Text, Text, Text, Text> {
-        float all = 0;
+        
+	float all = 0;
+	    
         public void reduce(Text key, Iterable<Text> values, Context context)
                 throws IOException, InterruptedException {
 		
-	    // mission one: get the number of total individiual words in a document----------------------
+	    // mission 1: get the number of total individiual words in a document----------------------
 		
             int index = key.toString().indexOf(" ");
 	    // get the position of the separator, 
@@ -190,18 +193,25 @@ public class Question41 {
                 return;
             }
 	    
-	    // mission two: calculate the frequency of a single word then parse them 
-		
+	    // mission 2: calculate the frequency of "a single word" ----------------------------------
+	    //                                               (globally)
+	    // recycle the codes from Stanford word count
+	    // the mulitiplication needs to use integer instead of String, use "Integer.parseInt()"
+	
             float sum = 0; 
-            for (Text val : values) {
+            for (Text val : values) { // previous "if" function  avoided the pairs from cleanup part
                 sum += Integer.parseInt(val.toString());
             }
-            // 跳出循环后，某个单词数出现的次数就统计完了，所有 TF(词频) = sum / all
+		
+		
+	    // mission 3: Term Frequncy of a single word, globally ---------------------------------------------- 
             float tmp = sum / all;
             String value = "";
-            value += tmp; // 记录词频
+            value += tmp; 
 
-            // 将key中单词和文件名进行互换。es: test1 hello -> hello test1
+            // switch the position between document file name and word
+	    // ex: doc1 hello -> hello doc1
+		
             String p[] = key.toString().split(" ");
             String key_to = "";
             key_to += p[1];
