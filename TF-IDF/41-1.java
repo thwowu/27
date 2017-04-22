@@ -123,14 +123,37 @@ public class Question41 {
                 //          doc1 newnewnew 1
             }
         }
-
+	
+	/* to initialize and clean up your map/reduce tasks
+	 * (don't have access to any data from the input split directly)
+	 * have a chance to do something before and after your map/reduce tasks
+	 * 	 
+	 * 1. clean up any resources you may have allocated
+	 * 2. flush out any accumulation of aggregate results
+	 * 
+	 * word count example
+	 * 
+	 * want to exclude certain words from being counted (e.g. stop words such as "the", "a", "be", etc...)
+	 * 1. pass a list (comma-delimited) of these words as a parameter (key-value pair) into the configuration object
+	 * 2. in map code, during setup():
+	 *    acquire the stop words and store them in some global variable (global variable to the map task)
+	 *    exclude counting these words during your map logic
+	 * 
+	 * setup -> map -> cleanup
+	 * setup -> reduce -> cleanup
+	 * http://stackoverflow.com/questions/25432598/what-is-the-mapper-of-reducer-setup-used-for
+	*/ 
+	    
+	// expecting to calculate
         public void cleanup(Context context) throws IOException,
                 InterruptedException {
-            // Map的最后，我们将单词的总数写入。下面需要用总单词数来计算。
-            String str = "";
-            str += all;
+
+			
+	    String str = "";
+            str += all; // "all" is the total numbers of individual words in one document
             context.write(new Text(File_name + " " + "!"), new Text(str));
             // 主要这里值使用的 "!"是特别构造的。 因为!的ascii比所有的字母都小。
+	    // doc1 ! 499
         }
     }
 
