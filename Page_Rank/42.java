@@ -27,32 +27,10 @@ import org.apache.hadoop.mapred.TextOutputFormat;
 
 public class PageRank {
 
-	public static class Reduce extends MapReduceBase
-			implements
-			org.apache.hadoop.mapred.Reducer<Text, PRWritable, LongWritable, Text> {
-
-		@Override
-		public void reduce(Text url, Iterator<PRWritable> weight_url,
-				OutputCollector<LongWritable, Text> arg2, Reporter arg3)
-				throws IOException {
-			
-			long pr = 0;
-			while(weight_url.hasNext()){
-				PRWritable pr_w = weight_url.next();
-				pr = pr + pr_w.getPr().get();
-			}
-			
-			arg2.collect(new LongWritable(pr), new Text(url));
-
-		}
-		
-
-	}
 
 	public static class Map extends MapReduceBase implements
 			Mapper<LongWritable, Text, Text, PRWritable> {
-
-
+		
 		@Override
 		public void map(LongWritable key, Text value,
 				OutputCollector<Text, PRWritable> context, Reporter arg3)
@@ -95,6 +73,28 @@ public class PageRank {
 		 * 
 		 * 
 		 */
+
+	}
+
+	public static class Reduce extends MapReduceBase
+			implements
+			org.apache.hadoop.mapred.Reducer<Text, PRWritable, LongWritable, Text> {
+
+		@Override
+		public void reduce(Text url, Iterator<PRWritable> weight_url,
+				OutputCollector<LongWritable, Text> arg2, Reporter arg3)
+				throws IOException {
+			
+			long pr = 0;
+			while(weight_url.hasNext()){
+				PRWritable pr_w = weight_url.next();
+				pr = pr + pr_w.getPr().get();
+			}
+			
+			arg2.collect(new LongWritable(pr), new Text(url));
+
+		}
+		
 
 	}
 
