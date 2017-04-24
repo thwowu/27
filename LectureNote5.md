@@ -2,9 +2,7 @@
 
 1. Compression techniques
 2. windows techniques
-
-⋅⋅* ex: 15 mins (then consider the next window in the period of 15 mins)
-
+⋅⋅2. ex: 15 mins (then consider the next window in the period of 15 mins)
 3. challenge: finding the right bandwidth of the window length. 
 
 Text Mining:
