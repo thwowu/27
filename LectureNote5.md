@@ -1,8 +1,8 @@
-### Lecture Note
+# Lecture Note
 
-#### Compression techniques
-#### windows techniques
-- ex: 15 mins (then consider the next window in the period of 15 mins)
+- Compression techniques
+- windows techniques
+⋅⋅* ex: 15 mins (then consider the next window in the period of 15 mins)
 - challenge: finding the right bandwidth of the window length. 
 
 Text Mining:
@@ -21,5 +21,30 @@ DSMS solution
 ⋅⋅* only store the latest period of data
 
 Time Frame Segmentation: (related to window techniques)
+
+
+## Graph model for social network
+
+- Nodes: individual actors within the network
+⋅⋅* Nodes with label: user names
+
+- Ties: relationships betweens the actors
+⋅⋅* Edges: not labelled
+⋅⋅* directional: (path)  predecessors $(father)$, successor
+- links may have attributes, directed or undirected
+- Network Type
+⋅⋅* Homogeneous network: only one type of relationship (like friendship) 
+⋅⋅* Geterogeneous network: (follower relationship "bold line" + similarity relationship "dot line" )
+
+
+
+
+
+
+
+
+
+
+
 
 
