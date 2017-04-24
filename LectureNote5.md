@@ -1,9 +1,9 @@
 # Lecture Note
 
-- Compression techniques
-- windows techniques
+1. Compression techniques
+2. windows techniques
 ⋅⋅* ex: 15 mins (then consider the next window in the period of 15 mins)
-- challenge: finding the right bandwidth of the window length. 
+3. challenge: finding the right bandwidth of the window length. 
 
 Text Mining:
 - delete the stops words to extract information from the data
