@@ -27,9 +27,13 @@ import org.apache.hadoop.mapred.TextOutputFormat;
 
 public class PageRank {
 
-
+	public static enum UNIQUE {
+		 counter
+		 };
+		
 	public static class Map extends MapReduceBase implements
 			Mapper<LongWritable, Text, Text, PRWritable> {
+		
 		
 		@Override
 		public void map(LongWritable key, Text value,
@@ -37,6 +41,9 @@ public class PageRank {
 				throws IOException {
 			Pattern pat_title = Pattern.compile("&lttitle&gt(.+)&lt/title&gt");
 			Pattern pat_links = Pattern.compile("\\[\\[(.+?)\\]\\]");
+			context.getCounter(UNIQUE.counter).increment(1);
+	      		String nujj = String.valueOf(context.getCounter(UNIQUE.counter).getValue());
+			
 			StringTokenizer tok = new StringTokenizer(value.toString(), "\t");
 			HashMap<String, List<String>> title_line = new HashMap<>();
 			while (tok.hasMoreTokens()) {
@@ -98,8 +105,6 @@ public class PageRank {
 
 	}
 
-	static String HDFS_PREFIX = "hdfs://localhost:9000";
-
 	public static void main(String args[]) throws IOException,
 			ClassNotFoundException, InterruptedException {
 		JobConf conf = new JobConf(PageRank.class);
@@ -115,15 +120,19 @@ public class PageRank {
 		conf.setInputFormat(TextInputFormat.class);
 		conf.setOutputFormat(TextOutputFormat.class);
 		
-		if(args.length>2){
-			HDFS_PREFIX = args[2];
-		}
 		Path p = new Path(HDFS_PREFIX + args[0]);
 
 		FileInputFormat.setInputPaths(conf, p);
 		FileOutputFormat.setOutputPath(conf, new Path(HDFS_PREFIX + args[1]
 				+ new java.util.Random().nextInt()));
 
+		Counters counters = job.getCounters();
+	  	Counter c1 = counters.findCounter(UNIQUE.counter);
+				
+		FileSystem fs = FileSystem.newInstance(getConf());
+		if (fs.exists(new Path(args[1]))) {
+				fs.delete(new Path(args[1]), true);
+			}
 		JobClient.runJob(conf);
 	}
 }
