@@ -1,43 +1,63 @@
 package ecp.Lab1.WordCount;
 
-// http://www.cnblogs.com/hehaiyang/p/4489248.html
-// /home/hadoop/input /home/hadoop/temp /home/hadoop/output
-
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.StringTokenizer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.InputSplit;
-import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Partitioner;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.util.Tool;
+import org.apache.hadoop.util.ToolRunner;
 
-public class Question41 {
+public class tfidf extends Configured implements Tool {
 
-	public static void main(String[] args) throws IOException {
-		
+	@Override
+	public int run(String[] args) throws Exception {
+			
 	// part1----------------------------------------------------
 	// 	
 		
         Configuration conf1 = new Configuration();
 
-        FileSystem hdfs = FileSystem.get(conf1);
-        FileStatus p[] = hdfs.listStatus(new Path(args[0]));
         // counting the documents. Later used in setting the numbers of reducers 
         
+        int Count = 0;
+        FileSystem fs = FileSystem.get(conf1);
+        RemoteIterator<LocatedFileStatus> ri = fs.listFiles(new Path(args[0]), false);
+        while (ri.hasNext()){
+            Count++;
+            ri.next();
+        }
+        
+        
+        FileSystem fs1 = FileSystem.newInstance(getConf());
+  		if (fs1.exists(new Path(args[1]))) {
+  			fs1.delete(new Path(args[1]), true);
+  		}
+  	    FileSystem fs2 = FileSystem.newInstance(getConf());
+  		if (fs2.exists(new Path(args[2]))) {
+  			fs2.delete(new Path(args[2]), true);
+  		}
+        		
         Job job1 = Job.getInstance(conf1, "My_tdif_part1");
-        job1.setJarByClass(TFIDF.class);
+        job1.setJarByClass(tfidf.class);
         job1.setMapperClass(Mapper_Part1.class);
         job1.setCombinerClass(Combiner_Part1.class); 
         job1.setReducerClass(Reduce_Part1.class);
@@ -45,7 +65,7 @@ public class Question41 {
         job1.setMapOutputValueClass(Text.class);
         job1.setOutputKeyClass(Text.class);
         job1.setOutputValueClass(Text.class);
-        job1.setNumReduceTasks(p.length);
+        job1.setNumReduceTasks(Count);
         
         // job1.setPartitionerClass(MyPartitoner.class); 
         /* control the way Hadoop partitions and sorts at reduce level 
@@ -89,6 +109,11 @@ public class Question41 {
 		
     }
 	
+	public static void main(String[] args) throws Exception {
+		tfidf tfidf = new tfidf();
+        int res = ToolRunner.run(tfidf, args);
+        System.exit(res);
+	}
 // part1------------------------------------------------------------------------
     public static class Mapper_Part1 extends
         Mapper<LongWritable, Text, Text, Text> {
@@ -104,19 +129,47 @@ public class Question41 {
         public void map(LongWritable key, Text value, Context context)
                 throws IOException, InterruptedException {
                           
-            // get the file name
-            String File_name = ((FileSplit) context.getInputSplit()).getPath().getName();
-	    
-            StringTokenizer itr = new StringTokenizer(value.toString());
+String File_name = ((FileSplit) context.getInputSplit()).getPath().getName();
+	        file = File_name;
+	        
+	         for (String token: value.toString().split("\\s*\\b\\s*")) {
+	         	token = token.trim().toLowerCase();
+	         	Pattern p = Pattern.compile("[A-Za-z0-9]");
+	 	    	Matcher m = p.matcher(token);
+	         	
+	 	    	if (token.isEmpty() ) {
+	                 continue;
+	             } 
+	            if (!m.find()){
+	            continue;}
+             StringTokenizer itr = new StringTokenizer(token.toString());            
             
-            String word;
-	    while (itr.hasMoreTokens()) {
-                word = File_name;
-                word += " ";
-                word += itr.nextToken(); 
+             while (itr.hasMoreTokens()) {
                 all++;
-                
-                context.write(new Text(word), one);
+                itr.nextToken(); }      
+	         }
+	         
+	         for (String token: value.toString().split("\\s*\\b\\s*")) {
+		         	token = token.trim().toLowerCase();
+		         	Pattern p = Pattern.compile("[A-Za-z0-9]");
+		 	    	Matcher m = p.matcher(token);
+		         	
+		 	    	if (token.isEmpty() ) {
+		                 continue;
+		             } 
+		            if (!m.find()){
+		            continue;}
+	            StringTokenizer itrr = new StringTokenizer(token.toString());
+	            
+	            
+		        String word;
+			    while (itrr.hasMoreTokens()) {
+			    	word = File_name;
+	                word += " ";
+	                word += itrr.nextToken(); 
+	                
+	                context.write(new Text(word), one);}
+		         }
                 // key: document name + word 
 		// value: 1 
 		// example: doc1 hello 1
@@ -152,9 +205,7 @@ public class Question41 {
 			
 	    String str = "";
             str += all; // "all" is the total numbers of individual words in one document
-            context.write(new Text(File_name + " " + "!"), new Text(str));
-            // 主要这里值使用的 "!"是特别构造的。 因为!的ascii比所有的字母都小。
-	    // doc1 ! 499
+            context.write(new Text(File_name + " " + "0"), new Text(str));
         }
 	    
 	/* map will flush the following output:
@@ -172,7 +223,8 @@ public class Question41 {
     // objective: complete term frequncy
     public static class Combiner_Part1 extends Reducer<Text, Text, Text, Text> {
         
-	float all = 0;
+	float all;
+	String kk;
 	    
         public void reduce(Text key, Iterable<Text> values, Context context)
                 throws IOException, InterruptedException {
@@ -183,11 +235,11 @@ public class Question41 {
 	    // get the position of the separator, 
 	    // later to use value to extract the total individual words amount, marked as "!"
 		
-            if (key.toString().substring(index + 1, index + 2).equals("!")) {
+            if (key.toString().substring(index + 1, index + 2).equals("0")) {
+            	kk = values.toString();
                 for (Text val : values) {
-                    // 
                     all = Integer.parseInt(val.toString());
-                }
+                    }
                 // do not output this pair of key-value, avoid using it in later stream
 		// only extract the number for calculation in combiner
                 return;
@@ -236,8 +288,7 @@ public class Question41 {
     public static class MyPartitoner extends Partitioner<Text, Text> {
 
 	    public int getPartition(Text key, Text value, int numPartitions) {
-            // 我们将一个文件中计算的结果作为一个文件保存
-            // es： test1 test2
+
             String ip1 = key.toString();
             ip1 = ip1.substring(0, ip1.indexOf(" "));
             Text p1 = new Text(ip1);
@@ -276,14 +327,11 @@ public class Question41 {
 	     * new key : word 
 	     * new value: document file name + term frquency value
 	    */ 
-	    
-	    
 	    int index = val.indexOf(" ");
-            String s1 = val.substring(0, index); // 获取单词 作为key es: hello
-            String s2 = val.substring(index + 1); // 其余部分 作为value es: test1
-                                                    // 0.11764706
+            String s1 = val.substring(0, index); 
+            String s2 = val.substring(index + 1);
             s2 += " ";
-            s2 += "1"; // 统计单词在所有文章中出现的次数, “1” 表示出现一次。 es: test1 0.11764706 1
+            s2 += "1"; 
             context.write(new Text(s1), new Text(s2));
         }
 	 /* map will flush the following output:
@@ -334,19 +382,22 @@ public class Question41 {
 	    
 	// Mission 2: TF-IDF ------------------------------------------------------------
 		
-	    for (int j = 0; j < vals.size(); j++) {
-		
-		// read out the TF value stored in the array list
-                String val = vals.get(j);
-                String end = val.substring(val.lastIndexOf(" "));
-                float f_end = Float.parseFloat(end);
-		 
-		// calculate tf-idf
-                val += " ";
-                val += f_end * tmp; //  tf-idf
-		    
-                context.write(key, new Text(val));
-            }
+	    if (set.size() < 0 || set.isEmpty() ){ return;}
+            else {
+            for (String val : set) {
+            	
+
+		        String end = val.substring(val.lastIndexOf("	")); // if taking infinity, it crashes
+		        float f_end = Float.parseFloat(end);
+		        val += " ";
+		        //System.out.println("end string: " + end);
+		        // System.out.println("idf: " + tmp);
+
+		        
+		        val += f_end * tmp;
+		        context.write(key, new Text(val));
+		         }	
+               }
         }
 	 /* 
 	 * reducer2 will flush the following output:
