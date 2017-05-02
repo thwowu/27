@@ -1,4 +1,4 @@
-package it.uniroma1.hadoop.pagerank;
+package ecp.Lab1.WordCount;
 
 import java.io.IOException;
 import java.text.DecimalFormat;
@@ -43,7 +43,7 @@ public class PageRank {
     
     // configuration values
     public static Double DAMPING = 0.85;
-    public static int ITERATIONS = 2;
+    public static int ITERATIONS = 2; //
     public static String IN_PATH = "";
     public static String OUT_PATH = "";
     
@@ -63,6 +63,13 @@ public class PageRank {
          * We would need to skip comment lines (denoted by the # characters at the beginning of the line).
          * We will also collect all the distinct nodes in our graph: this is needed to compute the initial 
          * pagerank value in Job #1 reducer and also in later jobs.
+         *  
+         * Input arguments:
+         * <nodeA>    <nodeB>
+         *          
+         * output argguments: 
+         * key: <nodeA>
+         * value: <nodeB>
          */
         
         if (value.charAt(0) != '#') {
@@ -74,7 +81,11 @@ public class PageRank {
             
             // add the current source node to the node list so we can 
             // compute the total amount of nodes of our graph in Job#2
+            // adding to a HashSet so there will not be duplicate nodes to the list.
+
             PageRank.NODES.add(nodeA);
+
+
             // also add the target node to the same list: we may have a target node 
             // with no outlinks (so it will never be parsed as source)
             PageRank.NODES.add(nodeB);
