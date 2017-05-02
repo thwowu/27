@@ -37,10 +37,10 @@ import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.mapreduce.Job;
 
 
-public class MDP01A03 extends Configured implements Tool {
+public class PR_Pre extends Configured implements Tool {
 	public static void main(String[] args) throws Exception {
 		System.out.println(Arrays.toString(args));
-		int res = ToolRunner.run(new Configuration(), new MDP01A03(), args);	
+		int res = ToolRunner.run(new Configuration(), new PR_Pre(), args);	
 		System.exit(res);
 		   }
 
@@ -51,8 +51,8 @@ public class MDP01A03 extends Configured implements Tool {
 	@Override
 	public int run(String[] args) throws Exception {
 	      System.out.println(Arrays.toString(args));
-	      Job job = new Job(getConf(), "MDP01A03");
-	      job.setJarByClass(MDP01A03.class);
+	      Job job = new Job(getConf(), "PR_Pre");
+	      job.setJarByClass(PR_Pre.class);
 
 	      job.setOutputKeyClass(Text.class);
 	      job.setOutputValueClass(Text.class);
