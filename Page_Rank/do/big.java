@@ -1,30 +1,3 @@
-/**
- * Copyright (c) 2014 Daniele Pantaleone <danielepantaleone@icloud.com>
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- * 
- * @author Daniele Pantaleone
- * @version 1.0
- * @copyright Daniele Pantaleone, 17 October, 2014
- * @package it.uniroma1.hadoop.pagerank
- */
-
 package it.uniroma1.hadoop.pagerank;
 
 import java.io.IOException;
@@ -43,12 +16,6 @@ import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.mapreduce.Job;
-
-import it.uniroma1.hadoop.pagerank.job1.PageRankJob1Mapper;
-import it.uniroma1.hadoop.pagerank.job1.PageRankJob1Reducer;
-import it.uniroma1.hadoop.pagerank.job2.PageRankJob2Mapper;
-import it.uniroma1.hadoop.pagerank.job2.PageRankJob2Reducer;
-import it.uniroma1.hadoop.pagerank.job3.PageRankJob3Mapper;
 
 
 public class PageRank {
@@ -80,6 +47,195 @@ public class PageRank {
     public static String IN_PATH = "";
     public static String OUT_PATH = "";
     
+    // ----------------------------------------- job 1 
+    
+    public class PageRankJob1Mapper extends Mapper<LongWritable, Text, Text, Text> {
+    
+    @Override
+    public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
+        
+        /* Job#1 mapper will simply parse a line of the input graph creating a map with key-value(s) pairs.
+         * Input format is the following (separator is TAB):
+         * 
+         *     <nodeA>    <nodeB>
+         * 
+         * which denotes an edge going from <nodeA> to <nodeB>.
+         * We would need to skip comment lines (denoted by the # characters at the beginning of the line).
+         * We will also collect all the distinct nodes in our graph: this is needed to compute the initial 
+         * pagerank value in Job #1 reducer and also in later jobs.
+         */
+        
+        if (value.charAt(0) != '#') {
+            
+            int tabIndex = value.find("\t");
+            String nodeA = Text.decode(value.getBytes(), 0, tabIndex);
+            String nodeB = Text.decode(value.getBytes(), tabIndex + 1, value.getLength() - (tabIndex + 1));
+            context.write(new Text(nodeA), new Text(nodeB));
+            
+            // add the current source node to the node list so we can 
+            // compute the total amount of nodes of our graph in Job#2
+            PageRank.NODES.add(nodeA);
+            // also add the target node to the same list: we may have a target node 
+            // with no outlinks (so it will never be parsed as source)
+            PageRank.NODES.add(nodeB);
+            }
+        }
+    }
+    
+    public class PageRankJob1Reducer extends Reducer<Text, Text, Text, Text> {
+    
+    @Override
+    public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
+        
+        /* Job#1 reducer will scroll all the nodes pointed by the given "key" node, constructing a
+         * comma separated list of values and initializing the page rank for the "key" node.
+         * Output format is the following (separator is TAB):
+         * 
+         *     <title>    <page-rank>    <link1>,<link2>,<link3>,<link4>,...,<linkN>
+         *     
+         * As for the pagerank initial value, early version of the PageRank algorithm used 1.0 as default, 
+         * however later versions of PageRank assume a probability distribution between 0 and 1, hence the 
+         * initial valus is set to DAMPING FACTOR / TOTAL NODES for each node in the graph.   
+         */
+        
+        boolean first = true;
+        String links = (PageRank.DAMPING / PageRank.NODES.size()) + "\t";
+
+        for (Text value : values) {
+            if (!first) 
+                links += ",";
+            links += value.toString();
+            first = false;
+        }
+
+        context.write(key, new Text(links));
+        }
+    }
+    
+    // ----------------------------------------- job 2
+    
+    public class PageRankJob2Mapper extends Mapper<LongWritable, Text, Text, Text> {
+    
+    @Override
+    public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
+        
+        /* PageRank calculation algorithm (mapper)
+         * Input file format (separator is TAB):
+         * 
+         *     <title>    <page-rank>    <link1>,<link2>,<link3>,<link4>,... ,<linkN>
+         * 
+         * Output has 2 kind of records:
+         * One record composed by the collection of links of each page:
+         *     
+         *     <title>   |<link1>,<link2>,<link3>,<link4>, ... , <linkN>
+         *     
+         * Another record composed by the linked page, the page rank of the source page 
+         * and the total amount of out links of the source page:
+         *  
+         *     <link>    <page-rank>    <total-links>
+         */
+        
+        int tIdx1 = value.find("\t");
+        int tIdx2 = value.find("\t", tIdx1 + 1);
+        
+        // extract tokens from the current line
+        String page = Text.decode(value.getBytes(), 0, tIdx1);
+        String pageRank = Text.decode(value.getBytes(), tIdx1 + 1, tIdx2 - (tIdx1 + 1));
+        String links = Text.decode(value.getBytes(), tIdx2 + 1, value.getLength() - (tIdx2 + 1));
+        
+        String[] allOtherPages = links.split(",");
+        for (String otherPage : allOtherPages) { 
+            Text pageRankWithTotalLinks = new Text(pageRank + "\t" + allOtherPages.length);
+            context.write(new Text(otherPage), pageRankWithTotalLinks); 
+        }
+        
+        // put the original links so the reducer is able to produce the correct output
+        context.write(new Text(page), new Text(PageRank.LINKS_SEPARATOR + links));
+        }
+    }
+    
+    public class PageRankJob2Reducer extends Reducer<Text, Text, Text, Text> {
+    
+    @Override
+    public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, 
+                                                                                InterruptedException {
+        
+        /* PageRank calculation algorithm (reducer)
+         * Input file format has 2 kind of records (separator is TAB):
+         * 
+         * One record composed by the collection of links of each page:
+         * 
+         *     <title>   |<link1>,<link2>,<link3>,<link4>, ... , <linkN>
+         *     
+         * Another record composed by the linked page, the page rank of the source page 
+         * and the total amount of out links of the source page:
+         *
+         *     <link>    <page-rank>    <total-links>
+         */
+        
+        String links = "";
+        double sumShareOtherPageRanks = 0.0;
+        
+        for (Text value : values) {
+ 
+            String content = value.toString();
+            
+            if (content.startsWith(PageRank.LINKS_SEPARATOR)) {
+                // if this value contains node links append them to the 'links' string
+                // for future use: this is needed to reconstruct the input for Job#2 mapper
+                // in case of multiple iterations of it.
+                links += content.substring(PageRank.LINKS_SEPARATOR.length());
+            } else {
+                
+                String[] split = content.split("\\t");
+                
+                // extract tokens
+                double pageRank = Double.parseDouble(split[0]);
+                int totalLinks = Integer.parseInt(split[1]);
+                
+                // add the contribution of all the pages having an outlink pointing 
+                // to the current node: we will add the DAMPING factor later when recomputing
+                // the final pagerank value before submitting the result to the next job.
+                sumShareOtherPageRanks += (pageRank / totalLinks);
+            }
+
+        }
+        
+        double newRank = PageRank.DAMPING * sumShareOtherPageRanks + (1 - PageRank.DAMPING);
+        context.write(key, new Text(newRank + "\t" + links));
+        }
+    }
+    
+    // ----------------------------------------- job 3
+    
+    
+    public class PageRankJob3Mapper extends Mapper<LongWritable, Text, DoubleWritable, Text> {
+    
+    @Override
+    public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
+        
+        /* Rank Ordering (mapper only)
+         * Input file format (separator is TAB):
+         * 
+         *     <title>    <page-rank>    <link1>,<link2>,<link3>,<link4>,... ,<linkN>
+         * 
+         * This is a simple job which does the ordering of our documents according to the computed pagerank.
+         * We will map the pagerank (key) to its value (page) and Hadoop will do the sorting on keys for us.
+         * There is no need to implement a reducer: the mapping and sorting is enough for our purpose.
+         */
+        
+        int tIdx1 = value.find("\t");
+        int tIdx2 = value.find("\t", tIdx1 + 1);
+        
+        // extract tokens from the current line
+        String page = Text.decode(value.getBytes(), 0, tIdx1);
+        float pageRank = Float.parseFloat(Text.decode(value.getBytes(), tIdx1 + 1, tIdx2 - (tIdx1 + 1)));
+        
+        context.write(new DoubleWritable(pageRank), new Text(page));
+        }
+    }
+    
+   
     
     /**
      * This is the main class run against the Hadoop cluster.
