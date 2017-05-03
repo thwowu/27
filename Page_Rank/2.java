@@ -1,3 +1,5 @@
+package ecp.Lab1.WordCount;
+
 import java.io.IOException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -65,7 +67,7 @@ public class PageRank
 
 			pr = ((1-factor)+(factor*(pr)));
 			context.getCounter(PageCount.TotalPR).increment((int)(pr*1000));
-			String output = pr+" "+sb.toString();
+			String output = pr+","+sb.toString();
 			context.write(key, new Text(output));
 		}
 	}
@@ -74,7 +76,7 @@ public class PageRank
 	{
 		String input;
 		String output;
-		int threshold = 1000;
+		int threshold = 0;
 		int iteration = 0;
 		int iterationLimit = 100;
 		boolean status = false;
@@ -83,17 +85,19 @@ public class PageRank
 		{
 			if((iteration % 2) == 0)
 			{
-				input = "/pagerank_output/p*";
-				output = "/pagerank_output2/";
+				input = "input";
+				output = "output";
 			}else{
-				input = "/pagerank_output2/p*";
-				output = "/pagerank_output/";
+				input = "input";
+				output = "output";
 			}
 
 			Configuration conf = new Configuration();	
 			
 			FileSystem fs = FileSystem.get(conf);
-			fs.delete(new Path(output), true);
+		      if (fs.exists(new Path(output) ) ) {
+					fs.delete(new Path(output), true);
+				}
 			
 			Job job = Job.getInstance(new Cluster(conf));
 			job.setJobName("PageRank");
@@ -104,6 +108,7 @@ public class PageRank
 			job.setOutputValueClass(Text.class);
 			TextInputFormat.addInputPath(job, new Path(input));
 			TextOutputFormat.setOutputPath(job, new Path(output));
+			job.getConfiguration().set("mapreduce.output.textoutputformat.separator", ",");
 			status = job.waitForCompletion(true);
 			iteration++;
 			
@@ -113,11 +118,15 @@ public class PageRank
 			System.out.println("TotalPR:"+total_pr);
 			double per_pr = total_pr/(count*1.0d);
 			System.out.println("Per PR:"+per_pr);
+			
+			// if the total Page Rank value is the same as the last time, 
+		    // the loop will break to stop and spit out the result
 			if((int)per_pr == threshold)
 			{
 				System.out.println("Iteration:"+iteration);
 				break;
 			}
+			threshold = (int) per_pr;
 		}
 		System.exit(status?0:1);
 	}
