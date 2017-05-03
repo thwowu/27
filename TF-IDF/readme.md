@@ -1,5 +1,7 @@
 # 20 words have the highest tf-idf scores
 
+***
+
 * myself
 * thoughts
 * board
@@ -8,17 +10,17 @@
 * labor
 * believe
 * deliverance
+* coast
+* shall
+* purpose
+* fired
+* round
+* wreck
+* length
+* perfectly
+* xury
+* goats
+* plantation
+* am
 
 
-coast
-shall
-purpose
-fired
-round
-wreck
-length
-perfectly
-xury
-goats
-plantation
-am
