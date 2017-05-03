@@ -1,5 +1,8 @@
 # 20 words have the highest tf-idf scores
 
+Output: [file](https://github.com/thwowu/BigData-Lab1/blob/master/TF-IDF/result.csv)
+sorted output: [file](https://github.com/thwowu/BigData-Lab1/blob/master/TF-IDF/resultsort.csv)
+
 ***
 * 	myself	: 	87.90075873
 * 	thoughts	: 	33.41432952
