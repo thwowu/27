@@ -22,17 +22,19 @@ public class PageRank
 		public void map(Object key, Text value, Context context) throws IOException, InterruptedException
 		{
 			context.getCounter(PageCount.Count).increment(1);
-			String[] kv = value.toString().split("\t");
-			String _key = kv[0];
-			String _value = kv[1];
-			String _PRnLink[] = _value.split(" ");
-			String pr = _PRnLink[0];
-			String link = _PRnLink[1];
-			context.write(new Text(_key), new Text(link));
+			String[] inter = value.toString().split("\t");
+			String firstnode = inter[0];
+			String rankwithnode = inter[1];
+			String spil[] = rankwithnode.split(" ");
+			String pr = spil[0];
+			String link = spil[1];
+			context.write(new Text(firstnode), new Text(link));
 
-			String site[] = link.split(",");
-			float score = Float.valueOf(pr)/(site.length)*1.0f;
-			for(int i = 0 ; i < site.length ; i++)
+			String linkingTo[] = link.split(",");
+			float score = Float.valueOf(pr)/(linkingTo.length)*1.0f;
+
+			// for loop write spit out all the connected nodes to the first node
+			for(int i = 0 ; i < linkingTo.length ; i++)
 			{
 				context.write(new Text(site[i]), new Text(String.valueOf(score)));
 			}	
@@ -42,11 +44,14 @@ public class PageRank
  
 	public static class PageRankReducer extends Reducer<Text, Text, Text, Text>
 	{
+		StringBuilder sb = new StringBuilder();
+		// background setting 
+		float factor = 0.85f;
+		float pr = 0f;
+
 		public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException
 		{
-			StringBuilder sb = new StringBuilder();
-			float factor = 0.85f;
-			float pr = 0f;
+			
 			for(Text f : values)
 			{				
 				String value = f.toString();
