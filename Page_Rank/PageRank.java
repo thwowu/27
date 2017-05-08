@@ -14,6 +14,65 @@ import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 
 public class PageRank
 {
+	public static void main(String[] args) throws Exception
+	{
+		String input;
+		String output;
+		int threshold = 0;
+		int iteration = 0;
+		int iterationLimit = 100;
+		boolean status = false;
+		
+		while(iteration < iterationLimit)
+		{
+			if((iteration % 2) == 0)
+			{
+				input = "input";
+				output = "output";
+			}else{
+				input = "input";
+				output = "output";
+			}
+
+			Configuration conf = new Configuration();	
+			
+			FileSystem fs = FileSystem.get(conf);
+		      	if (fs.exists(new Path(output) ) ) {
+				fs.delete(new Path(output), true);
+				}
+			
+			Job job = Job.getInstance(new Cluster(conf));
+			job.setJobName("PageRank");
+			job.setJarByClass(PageRank.class);
+			job.setMapperClass(PageRankMapper.class);
+			job.setReducerClass(PageRankReducer.class);
+			job.setOutputKeyClass(Text.class);
+			job.setOutputValueClass(Text.class);
+			TextInputFormat.addInputPath(job, new Path(input));
+			TextOutputFormat.setOutputPath(job, new Path(output));
+			job.getConfiguration().set("mapreduce.output.textoutputformat.separator", ",");
+			status = job.waitForCompletion(true);
+			iteration++;
+			
+			long count = job.getCounters().findCounter(PageCount.Count).getValue();
+			long total_pr = job.getCounters().findCounter(PageCount.TotalPR).getValue();
+			System.out.println("PageCount:"+count);
+			System.out.println("TotalPR:"+total_pr);
+			double per_pr = total_pr/(count*1.0d);
+			System.out.println("Per PR:"+per_pr);
+			
+			// if the total Page Rank value is the same as the last time, 
+		    // the loop will break to stop and spit out the result
+			if((int)per_pr == threshold)
+			{
+				System.out.println("Iteration:"+iteration);
+				break;
+			}
+			threshold = (int) per_pr;
+		}
+		System.exit(status?0:1);
+	}
+	
 	static enum PageCount{
 		Count,TotalPR
 	}
@@ -75,64 +134,5 @@ public class PageRank
 			String output = pr+","+sb.toString();
 			context.write(key, new Text(output));
 		}
-	}
-
-	public static void main(String[] args) throws Exception
-	{
-		String input;
-		String output;
-		int threshold = 0;
-		int iteration = 0;
-		int iterationLimit = 100;
-		boolean status = false;
-		
-		while(iteration < iterationLimit)
-		{
-			if((iteration % 2) == 0)
-			{
-				input = "input";
-				output = "output";
-			}else{
-				input = "input";
-				output = "output";
-			}
-
-			Configuration conf = new Configuration();	
-			
-			FileSystem fs = FileSystem.get(conf);
-		      if (fs.exists(new Path(output) ) ) {
-					fs.delete(new Path(output), true);
-				}
-			
-			Job job = Job.getInstance(new Cluster(conf));
-			job.setJobName("PageRank");
-			job.setJarByClass(PageRank.class);
-			job.setMapperClass(PageRankMapper.class);
-			job.setReducerClass(PageRankReducer.class);
-			job.setOutputKeyClass(Text.class);
-			job.setOutputValueClass(Text.class);
-			TextInputFormat.addInputPath(job, new Path(input));
-			TextOutputFormat.setOutputPath(job, new Path(output));
-			job.getConfiguration().set("mapreduce.output.textoutputformat.separator", ",");
-			status = job.waitForCompletion(true);
-			iteration++;
-			
-			long count = job.getCounters().findCounter(PageCount.Count).getValue();
-			long total_pr = job.getCounters().findCounter(PageCount.TotalPR).getValue();
-			System.out.println("PageCount:"+count);
-			System.out.println("TotalPR:"+total_pr);
-			double per_pr = total_pr/(count*1.0d);
-			System.out.println("Per PR:"+per_pr);
-			
-			// if the total Page Rank value is the same as the last time, 
-		    // the loop will break to stop and spit out the result
-			if((int)per_pr == threshold)
-			{
-				System.out.println("Iteration:"+iteration);
-				break;
-			}
-			threshold = (int) per_pr;
-		}
-		System.exit(status?0:1);
-	}
+	}	
 }
